@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export default function Home() {
-  return (
+  return ( 
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
       <Card className="mx-auto max-w-md md:max-w-2xl">
         <CardHeader>
