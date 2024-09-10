@@ -1,162 +1,262 @@
-// src/app/session/[sessionId]/page.tsx
+"use client"
 
-"use client";  // Use Client Component
-
-import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";  // Import shadcn Input component
-import { doc, getDoc, setDoc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebaseConfig";
+import { useEffect, useState } from "react"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { doc, getDoc, setDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore"
+import { db } from "@/lib/firebaseConfig"
+import { Loader2, DollarSign, Users, AlertTriangle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 type Item = {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  buyers: string[];
-  people: number;
-};
+  id: string
+  name: string
+  price: number
+  quantity: number
+  buyers: string[]
+  people: number
+}
 
 type TotalInfo = {
-  total: number;
-  tax: number;
-  tip: number;
-};
+  total: number
+  tax: number
+  tip: number
+}
 
 type SessionData = {
-  items: Item[];
-  totalInfo: TotalInfo;
-  alias: string;
-};
+  items: Item[]
+  totalInfo: TotalInfo
+  alias: string
+  activeUsers: string[]
+}
 
 export default function SessionPage({ params }: { params: { sessionId: string } }) {
-  const { sessionId } = params;  // Retrieve the sessionId from the URL params
-  const [items, setItems] = useState<Item[]>([]);
-  const [sessionData, setSessionData] = useState<SessionData | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState<string>("");
+  const { sessionId } = params
+  const [items, setItems] = useState<Item[]>([])
+  const [sessionData, setSessionData] = useState<SessionData | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
+  const [nameInput, setNameInput] = useState<string>("")  // Separate input state
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!sessionId) return;  // Wait until sessionId is available
+    if (!sessionId) {
+      setError("Session ID is missing")
+      setIsLoading(false)
+      return
+    }
 
-    const sessionDocRef = doc(db, "sessions", sessionId);
+    const sessionDocRef = doc(db, "sessions", sessionId)
 
-    // Real-time listener for session data
-    const unsubscribe = onSnapshot(sessionDocRef, (docSnapshot) => {
-      const data = docSnapshot.data() as SessionData;
-      if (data) {
-        setSessionData(data);
-        setItems(data.items);
+    const unsubscribe = onSnapshot(
+      sessionDocRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const data = docSnapshot.data() as SessionData
+          setSessionData(data)
+          setItems(data.items)
+        } else {
+          setError("Session not found")
+        }
+        setIsLoading(false)
+      },
+      (err) => {
+        console.error("Error fetching session data:", err)
+        setError("Failed to load session data")
+        setIsLoading(false)
       }
-    });
+    )
 
-    return () => unsubscribe();  // Cleanup listener on unmount
-  }, [sessionId]);
+    return () => unsubscribe()
+  }, [sessionId])
+
+  useEffect(() => {
+    if (userName && sessionId) {
+      const sessionDocRef = doc(db, "sessions", sessionId)
+      updateDoc(sessionDocRef, {
+        activeUsers: arrayUnion(userName)
+      })
+
+      return () => {
+        updateDoc(sessionDocRef, {
+          activeUsers: arrayRemove(userName)
+        })
+      }
+    }
+  }, [userName, sessionId])
 
   const updateItem = async (itemId: string) => {
-    if (!userName || !sessionId || !sessionData) return;
+    if (!userName || !sessionId || !sessionData) {
+      setError("Unable to update item. Please check your connection and try again.")
+      return
+    }
 
-    const sessionDocRef = doc(db, "sessions", sessionId);
-    const docSnap = await getDoc(sessionDocRef);
+    try {
+      const sessionDocRef = doc(db, "sessions", sessionId)
+      const docSnap = await getDoc(sessionDocRef)
 
-    if (docSnap.exists()) {
-      const sessionData = docSnap.data() as SessionData;
-      const updatedItems = sessionData.items.map((item: Item) => {
-        if (item.id === itemId) {
-          if (item.buyers.includes(userName)) {
-            item.buyers = item.buyers.filter(buyer => buyer !== userName);
-          } else {
-            item.buyers.push(userName);
+      if (docSnap.exists()) {
+        const sessionData = docSnap.data() as SessionData
+        const updatedItems = sessionData.items.map((item: Item) => {
+          if (item.id === itemId) {
+            if (item.buyers.includes(userName)) {
+              item.buyers = item.buyers.filter(buyer => buyer !== userName)
+            } else {
+              item.buyers.push(userName)
+            }
           }
-        }
-        return item;
-      });
+          return item
+        })
 
-      await setDoc(sessionDocRef, { ...sessionData, items: updatedItems });
+        await setDoc(sessionDocRef, { ...sessionData, items: updatedItems })
+      } else {
+        setError("Session not found")
+      }
+    } catch (err) {
+      console.error("Error updating item:", err)
+      setError("Failed to update item")
     }
-  };
+  }
 
-  const handleNameUpdate = () => {
-    if (inputValue.trim() === "") {
-      alert("Please enter a name.");
-      return;
+  const handleJoinSession = () => {
+    if (nameInput.trim() === "") {
+      setError("Please enter your name.")
+      return
     }
-    setUserName(inputValue.trim());
-    console.log("User name updated to:", inputValue.trim());
-  };
+    setUserName(nameInput.trim())  // Set userName only when the button is clicked
+    setError(null)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#faf4ed]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#575279]" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#faf4ed] p-4">
+        <Alert variant="destructive" className="max-w-md bg-[#fffaf3] border-[#b4637a] text-[#575279]">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    )
+  }
+
+  if (!userName) {
+    return (
+      <div className="min-h-screen bg-[#faf4ed] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-[#fffaf3] shadow-lg border-[#dfdad9]">
+          <CardHeader className="text-center bg-[#f2e9e1] rounded-t-lg">
+            <CardTitle className="text-2xl font-bold text-[#575279]">Welcome to TabShare</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 p-6">
+            <Input
+              type="text"
+              placeholder="Enter your name"
+              value={nameInput}  // Controlled input state
+              onChange={(e) => setNameInput(e.target.value)}  // Update input state
+              className="bg-[#fffaf3] border-[#cecacd] focus:ring-[#907aa9] focus:border-[#907aa9] text-[#575279]"
+            />
+            <Button onClick={handleJoinSession} className="w-full bg-[#286983] hover:bg-[#56949f] text-[#fffaf3]">
+              Join Session
+            </Button>
+            {error && <p className="text-[#b4637a] text-sm">{error}</p>}
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-      <Card className="mx-auto max-w-md md:max-w-2xl">
-        <CardHeader>
-          <CardTitle className="text-3xl md:text-4xl font-bold">TabShare - Session: {sessionId}</CardTitle>
+    <div className="min-h-screen bg-[#faf4ed] p-4 md:p-8">
+      <Card className="mx-auto max-w-md md:max-w-2xl lg:max-w-4xl bg-[#fffaf3] shadow-lg border-[#dfdad9]">
+        <CardHeader className="text-center bg-[#f2e9e1] rounded-t-lg">
+          <CardTitle className="text-3xl md:text-4xl font-bold text-[#575279]">TabShare</CardTitle>
+          <p className="text-[#797593]">Session: {sessionId}</p>
+          <p className="text-[#797593]">Welcome, {userName}!</p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* User Name Input using shadcn Input Component */}
-          {!userName && (
-            <div className="flex items-center space-x-2">
-              <Input
-                type="text"
-                placeholder="Enter your name"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                className="flex-grow"
-              />
-              <Button onClick={handleNameUpdate}>Save</Button>
+        <CardContent className="space-y-6 p-6">
+          {sessionData && sessionData.activeUsers && (
+            <div className="bg-[#f2e9e1] p-4 rounded-lg">
+              <h3 className="text-[#575279] font-semibold mb-2">Active Users</h3>
+              <div className="flex flex-wrap gap-2">
+                {sessionData.activeUsers.map((user, index) => (
+                  <Avatar key={index} className="w-8 h-8 bg-[#fffaf3] text-[#575279]">
+                    <AvatarFallback>{user[0].toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Display total information if sessionData is available */}
           {sessionData && (
-            <Card>
+            <Card className="bg-[#f2e9e1] border-[#dfdad9]">
               <CardContent className="p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span className="font-semibold">Tip:</span>
-                  <span>${sessionData.totalInfo.tip.toFixed(2)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[#575279]">Tip:</span>
+                  <span className="text-[#56949f]">${sessionData.totalInfo.tip.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Tax:</span>
-                  <span>${sessionData.totalInfo.tax.toFixed(2)}</span>
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-[#575279]">Tax:</span>
+                  <span className="text-[#56949f]">${sessionData.totalInfo.tax.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-lg font-bold">
-                  <span>You owe:</span>
-                  <span>${sessionData.totalInfo.total.toFixed(2)}</span>
+                <div className="flex justify-between items-center text-lg font-bold">
+                  <span className="text-[#575279]">You owe:</span>
+                  <span className="text-[#56949f]">${sessionData.totalInfo.total.toFixed(2)}</span>
                 </div>
-                <Button className="w-full mt-2">Venmo</Button>
+                <Button className="w-full mt-4 bg-[#286983] hover:bg-[#56949f] text-[#fffaf3]">
+                  <DollarSign className="mr-2 h-4 w-4" /> Pay with Venmo
+                </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Display Item List */}
-          {items.map((item, index) => (
-            <Card key={index}>
-              <CardContent className="p-4 flex items-start space-x-4">
-                <div className="w-12 h-12 bg-green-100 rounded-md flex items-center justify-center">
-                  {/* Icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8.25v-1.5m0 1.5c-1.355 0-2.697.056-4.024.166C6.845 8.51 6 9.473 6 10.608v2.513m6-4.87c1.355 0 2.697.055 4.024.165C17.155 8.51 18 9.473 18 10.608v2.513m-3-4.87v-1.5m-6 1.5v-1.5m12 9.75l-1.5.75a3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0 3.354 3.354 0 00-3 0 3.354 3.354 0 01-3 0L3 16.5m15-3.38a48.474 48.474 0 00-6-.37c-2.032 0-4.034.125-6 .37m12 0c.39.049.777.102 1.163.16 1.07.16 1.837 1.094 1.837 2.175v5.17c0 .62-.504 1.124-1.125 1.124H4.125A1.125 1.125 0 013 20.625v-5.17c0-1.08.768-2.014 1.837-2.174A47.78 47.78 0 016 13.12M12.265 3.11a.375.375 0 11-.53 0L12 2.845l.265.265zm-3 0a.375.375 0 11-.53 0L9 2.845l.265.265zm6 0a.375.375 0 11-.53 0L15 2.845l.265.265z" />
-                  </svg>
-                </div>
-                <div className="flex-grow">
-                  <h3 className="font-semibold">{item.name}</h3>
-                  <div className="text-sm text-gray-500">Quantity: {item.quantity}</div>
-                  <div className="font-semibold">Price: ${item.price.toFixed(2)}</div>
-                  <div className="flex space-x-2 mt-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map((item, index) => (
+              <Card key={index} className="flex flex-col justify-between bg-[#fffaf3] border-[#dfdad9]">
+                <CardContent className="p-4 space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-[#f2e9e1] rounded-md flex items-center justify-center text-[#575279]">
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#575279]">{item.name}</h3>
+                      <div className="text-sm text-[#797593]">Qty: {item.quantity}</div>
+                    </div>
+                  </div>
+                  <div className="font-semibold text-lg text-[#56949f]">${item.price.toFixed(2)}</div>
+                  <div className="flex flex-wrap gap-2">
                     {item.buyers.map((buyer: string, buyerIndex: number) => (
-                      <Avatar key={buyerIndex} className="w-8 h-8">
-                        <AvatarFallback>{buyer[0]}</AvatarFallback>
+                      <Avatar key={buyerIndex} className="w-8 h-8 bg-[#f2e9e1] text-[#575279]">
+                        <AvatarFallback>{buyer[0].toUpperCase()}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
-                  <Button className="mt-2" onClick={() => updateItem(item.id)}>Update Item</Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <Button 
+                    className="w-full text-[#fffaf3]" 
+                    variant={item.buyers.includes(userName) ? "default" : "outline"}
+                    onClick={() => updateItem(item.id)}
+                    style={{
+                      backgroundColor: item.buyers.includes(userName) ? '#286983' : '#fffaf3',
+                      color: item.buyers.includes(userName) ? '#fffaf3' : '#286983',
+                      borderColor: '#286983'
+                    }}
+                  >
+                    {item.buyers.includes(userName) ? "Remove" : "Add"}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }
