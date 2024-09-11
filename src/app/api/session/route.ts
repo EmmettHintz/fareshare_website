@@ -1,32 +1,34 @@
 // src/app/api/session/route.ts
 
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebaseConfig";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
-      const { sessionId } = req.body;
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { sessionId } = body;
 
-      if (!sessionId) {
-        return res.status(400).json({ error: "Session ID is required." });
-      }
-
-      // Initialize a new session in Firestore
-      const sessionDocRef = doc(db, "sessions", sessionId);
-      await setDoc(sessionDocRef, {
-        items: [],  // Initialize with an empty items array
-        totalInfo: { total: 0, tax: 0, tip: 0 },  // Default total info
-        alias: "",
-      });
-
-      res.status(200).json({ message: 'Session created successfully' });
-    } catch (error) {
-      console.error("Error creating session:", error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    if (!sessionId) {
+      return NextResponse.json({ error: "Session ID is required." }, { status: 400 });
     }
-  } else {
-    res.status(405).json({ error: 'Method Not Allowed' });
+
+    // Initialize a new session in Firestore
+    const sessionDocRef = doc(db, "sessions", sessionId);
+    await setDoc(sessionDocRef, {
+      items: [],  // Initialize with an empty items array
+      totalInfo: { total: 0, tax: 0, tip: 0 },  // Default total info
+      alias: "",
+    });
+
+    return NextResponse.json({ message: 'Session created successfully' }, { status: 200 });
+  } catch (error) {
+    console.error("Error creating session:", error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
+}
+
+export async function OPTIONS() {
+  // Optional: If you want to handle OPTIONS requests, you can add this.
+  return NextResponse.json({}, { status: 200 });
 }
