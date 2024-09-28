@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-[#6A7573]">
