@@ -1,17 +1,17 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from 'next/navigation' // Import useRouter for navigation
+import { useRouter } from 'next/navigation'
+import { motion, AnimatePresence } from "framer-motion"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { doc, getDoc, setDoc, onSnapshot, updateDoc, deleteField } from "firebase/firestore"
 import { db } from "@/lib/firebaseConfig"
-import { Loader2, DollarSign, Users, AlertTriangle, LogOut } from "lucide-react" // Import LogOut icon
+import { Loader2, DollarSign, Users, AlertTriangle, LogOut, CreditCard } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { v4 as uuidv4 } from 'uuid' // Import UUID
-import { arrayUnion, arrayRemove } from "firebase/firestore"
+import { v4 as uuidv4 } from 'uuid'
 
 type Item = {
   id: string
@@ -32,22 +32,21 @@ type SessionData = {
   items: Item[]
   totalInfo: TotalInfo
   alias: string
-  activeUsers: { [userId: string]: string } // Updated to a map
+  activeUsers: { [userId: string]: string }
 }
 
 export default function SessionPage({ params }: { params: { sessionId: string } }) {
   const { sessionId } = params
-  const router = useRouter() // Initialize router
+  const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
   const [sessionData, setSessionData] = useState<SessionData | null>(null)
-  const [userId, setUserId] = useState<string | null>(null) // New state for userId
-  const [userName, setUserName] = useState<string>("") // Initialize as empty string
+  const [userId, setUserId] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string>("")
   const [nameInput, setNameInput] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check for stored userId and userName in localStorage
     const storedUserId = localStorage.getItem('userId')
     const storedUserName = localStorage.getItem('userName')
     if (storedUserId && storedUserName) {
@@ -91,7 +90,6 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
     if (userId && sessionId) {
       const sessionDocRef = doc(db, "sessions", sessionId)
 
-      // Add user to activeUsers
       const addActiveUser = async () => {
         try {
           await updateDoc(sessionDocRef, {
@@ -104,7 +102,6 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
 
       addActiveUser()
 
-      // Remove user from activeUsers on cleanup
       return () => {
         const removeActiveUser = async () => {
           try {
@@ -118,7 +115,7 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
         removeActiveUser()
       }
     }
-  }, [userId, sessionId])
+  }, [userId, sessionId, userName])
 
   const updateItem = async (itemId: string) => {
     if (!userId || !sessionId || !sessionData) {
@@ -174,12 +171,10 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
 
     const sessionDocRef = doc(db, "sessions", sessionId)
     try {
-      // Remove user from activeUsers
       await updateDoc(sessionDocRef, {
         [`activeUsers.${userId}`]: deleteField()
       })
 
-      // Remove user from any items they are associated with
       const docSnap = await getDoc(sessionDocRef)
       if (docSnap.exists()) {
         const sessionData = docSnap.data() as SessionData
@@ -192,14 +187,12 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
         await setDoc(sessionDocRef, { ...sessionData, items: updatedItems })
       }
 
-      // Clear user data from localStorage and state
       localStorage.removeItem('userId')
       localStorage.removeItem('userName')
       setUserId(null)
       setUserName("")
 
-      // Redirect to join session page or home page
-      router.push('/') // Redirect to home page or any other page
+      router.push('/')
     } catch (err) {
       console.error("Error leaving session:", err)
       setError("Failed to leave session")
@@ -208,16 +201,16 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#faf4ed]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#575279]" />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-12 w-12 animate-spin text-[#6A7573]" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#faf4ed] p-4">
-        <Alert variant="destructive" className="max-w-md bg-[#fffaf3] border-[#b4637a] text-[#575279]">
+      <div className="min-h-screen flex items-center justify-center bg-white p-4">
+        <Alert variant="destructive" className="max-w-md bg-[#DBFACB] border-[#6A7573] text-[#6A7573]">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -228,119 +221,168 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
 
   if (!userId) {
     return (
-      <div className="min-h-screen bg-[#faf4ed] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-[#fffaf3] shadow-lg border-[#dfdad9]">
-          <CardHeader className="text-center bg-[#f2e9e1] rounded-t-lg">
-            <CardTitle className="text-2xl font-bold text-[#575279]">Welcome to TabShare</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 p-6">
-            <Input
-              type="text"
-              placeholder="Enter your name"
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              className="bg-[#fffaf3] border-[#cecacd] focus:ring-[#907aa9] focus:border-[#907aa9] text-[#575279]"
-            />
-            <Button onClick={handleJoinSession} className="w-full bg-[#286983] hover:bg-[#56949f] text-[#fffaf3]">
-              Join Session
-            </Button>
-            {error && <p className="text-[#b4637a] text-sm">{error}</p>}
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="w-full max-w-md bg-white shadow-lg border-[#DBFACB]">
+            <CardHeader className="text-center bg-[#DBFACB] rounded-t-lg">
+              <CardTitle className="text-3xl font-bold text-[#6A7573]">Welcome to TabShare</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 p-6">
+              <Input
+                type="text"
+                placeholder="Enter your name"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className="bg-white border-[#DBFACB] focus:ring-[#6A7573] focus:border-[#6A7573] text-[#6A7573] text-lg"
+              />
+              <Button 
+                onClick={handleJoinSession} 
+                className="w-full bg-[#DBFACB] hover:bg-[#C7E6B8] text-[#6A7573] text-lg font-semibold transition-all duration-300 ease-in-out transform hover:scale-105"
+              >
+                Join Session
+              </Button>
+              {error && <p className="text-[#6A7573] text-sm">{error}</p>}
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#faf4ed] p-4 md:p-8">
-      <Card className="mx-auto max-w-md md:max-w-2xl lg:max-w-4xl bg-[#fffaf3] shadow-lg border-[#dfdad9]">
-        <CardHeader className="text-center bg-[#f2e9e1] rounded-t-lg flex flex-col items-center">
-          <CardTitle className="text-3xl md:text-4xl font-bold text-[#575279]">TabShare</CardTitle>
-          <p className="text-[#797593]">Session: {sessionId}</p>
-          <p className="text-[#797593]">Welcome, {userName}!</p>
-          {/* Leave Session Button */}
-          <Button onClick={handleLeaveSession} variant="outline" className="mt-2 text-[#b4637a] border-[#b4637a]">
-            <LogOut className="mr-2 h-4 w-4" /> Leave Session
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-6 p-6">
-          {sessionData && sessionData.activeUsers && (
-            <div className="bg-[#f2e9e1] p-4 rounded-lg">
-              <h3 className="text-[#575279] font-semibold mb-2">Active Users</h3>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(sessionData.activeUsers).map(([userId, name]) => (
-                  <Avatar key={userId} className="w-8 h-8 bg-[#fffaf3] text-[#575279]">
-                    <AvatarFallback>{name[0].toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                ))}
+    <div className="min-h-screen bg-white p-4 md:p-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="mx-auto max-w-md md:max-w-2xl lg:max-w-4xl bg-white shadow-lg border-[#DBFACB]">
+          <CardHeader className="text-center bg-[#DBFACB] rounded-t-lg flex flex-col items-center">
+            <CardTitle className="text-4xl md:text-5xl font-bold text-[#6A7573] mb-2">TabShare</CardTitle>
+            <p className="text-[#6A7573] text-lg">Session: {sessionId}</p>
+            <p className="text-[#6A7573] text-xl font-semibold mt-2">Welcome, {userName}!</p>
+            <Button 
+              onClick={handleLeaveSession} 
+              variant="outline" 
+              className="mt-4 text-[#6A7573] border-[#6A7573] hover:bg-[#6A7573] hover:text-white transition-all duration-300 ease-in-out"
+            >
+              <LogOut className="mr-2 h-4 w-4" /> Leave Session
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-8 p-6">
+            {sessionData && sessionData.activeUsers && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="bg-[#DBFACB] p-6 rounded-lg shadow-md"
+              >
+                <h3 className="text-[#6A7573] font-semibold text-xl mb-4">Active Users</h3>
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(sessionData.activeUsers).map(([userId, name]) => (
+                    <Avatar key={userId} className="w-10 h-10 bg-white text-[#6A7573] border-2 border-[#6A7573] transition-all duration-300 ease-in-out hover:scale-110">
+                      <AvatarFallback>{name[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {sessionData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <Card className="bg-[#DBFACB] border-[#6A7573] shadow-lg">
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex justify-between items-center text-lg">
+                      <span className="font-semibold text-[#6A7573]">Tip:</span>
+                      <span className="text-[#6A7573]">${sessionData.totalInfo.tip.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg">
+                      <span className="font-semibold text-[#6A7573]">Tax:</span>
+                      <span className="text-[#6A7573]">${sessionData.totalInfo.tax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-2xl font-bold">
+                      <span className="text-[#6A7573]">You owe:</span>
+                      <span className="text-[#6A7573]">${sessionData.totalInfo.total.toFixed(2)}</span>
+                    </div>
+                    <Button className="w-full mt-6 bg-[#6A7573] hover:bg-[#5A6563] text-white text-lg font-semibold py-3 transition-all duration-300 ease-in-out transform hover:scale-105">
+                      <DollarSign className="mr-2 h-5 w-5" /> Pay with Venmo
+                    </Button>
+                    <Button variant="outline" className="w-full mt-2 border-[#6A7573] text-[#6A7573] hover:bg-[#6A7573] hover:text-white text-lg font-semibold py-3 transition-all duration-300 ease-in-out">
+                      <CreditCard className="mr-2 h-5 w-5" /> Pay with Card
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+            >
+              <h3 className="text-2xl font-bold text-[#6A7573] mb-4">Items</h3>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {items.map((item, index) => (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <Card className="flex flex-col justify-between bg-white border-[#DBFACB]">
+                        <CardContent className="p-6 space-y-4">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-14 h-14 bg-[#DBFACB] rounded-full flex items-center justify-center text-[#6A7573]">
+                              <Users className="h-8 w-8" />
+                            </div>
+                            <div>
+                              <h3 className="font-semibold text-xl text-[#6A7573]">{item.name}</h3>
+                              <div className="text-sm text-[#6A7573]">Qty: {item.quantity}</div>
+                            </div>
+                          </div>
+                          <div className="font-semibold text-2xl text-[#6A7573]">${item.price.toFixed(2)}</div>
+                          <div className="flex flex-wrap gap-2">
+                            {item.buyers.map((buyerId: string, buyerIndex: number) => {
+                              const buyerName = sessionData?.activeUsers[buyerId] || "Unknown"
+                              return (
+                                <Avatar key={buyerIndex} className="w-8 h-8 bg-[#DBFACB] text-[#6A7573]">
+                                  <AvatarFallback>{buyerName[0].toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                              )
+                            })}
+                          </div>
+                          <Button 
+                            className="w-full text-[#6A7573] text-lg font-semibold py-3 transition-all duration-300 ease-in-out transform hover:scale-105" 
+                            variant={item.buyers.includes(userId) ? "default" : "outline"}
+                            onClick={() => updateItem(item.id)}
+                            style={{
+                              backgroundColor: item.buyers.includes(userId) ? '#DBFACB' : 'white',
+                              color: '#6A7573',
+                              borderColor: '#DBFACB'
+                            }}
+                          >
+                            {item.buyers.includes(userId) ? "Remove" : "Add"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
-            </div>
-          )}
-
-          {sessionData && (
-            <Card className="bg-[#f2e9e1] border-[#dfdad9]">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-[#575279]">Tip:</span>
-                  <span className="text-[#56949f]">${sessionData.totalInfo.tip.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-[#575279]">Tax:</span>
-                  <span className="text-[#56949f]">${sessionData.totalInfo.tax.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg font-bold">
-                  <span className="text-[#575279]">You owe:</span>
-                  <span className="text-[#56949f]">${sessionData.totalInfo.total.toFixed(2)}</span>
-                </div>
-                <Button className="w-full mt-4 bg-[#286983] hover:bg-[#56949f] text-[#fffaf3]">
-                  <DollarSign className="mr-2 h-4 w-4" /> Pay with Venmo
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((item, index) => (
-              <Card key={index} className="flex flex-col justify-between bg-[#fffaf3] border-[#dfdad9]">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-[#f2e9e1] rounded-md flex items-center justify-center text-[#575279]">
-                      <Users className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-[#575279]">{item.name}</h3>
-                      <div className="text-sm text-[#797593]">Qty: {item.quantity}</div>
-                    </div>
-                  </div>
-                  <div className="font-semibold text-lg text-[#56949f]">${item.price.toFixed(2)}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {item.buyers.map((buyerId: string, buyerIndex: number) => {
-                      const buyerName = sessionData?.activeUsers[buyerId] || "Unknown"
-                      return (
-                        <Avatar key={buyerIndex} className="w-8 h-8 bg-[#f2e9e1] text-[#575279]">
-                          <AvatarFallback>{buyerName[0].toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                      )
-                    })}
-                  </div>
-                  <Button 
-                    className="w-full text-[#fffaf3]" 
-                    variant={item.buyers.includes(userId) ? "default" : "outline"}
-                    onClick={() => updateItem(item.id)}
-                    style={{
-                      backgroundColor: item.buyers.includes(userId) ? '#286983' : '#fffaf3',
-                      color: item.buyers.includes(userId) ? '#fffaf3' : '#286983',
-                      borderColor: '#286983'
-                    }}
-                  >
-                    {item.buyers.includes(userId) ? "Remove" : "Add"}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </motion.div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   )
 }

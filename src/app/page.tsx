@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +14,32 @@ import {
   Wallet,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
+import { motion, useInView } from "framer-motion";
 
 export default function LandingPage() {
+  const ref1 = useRef(null);
+  const ref2 = useRef(null);
+  const ref3 = useRef(null);
+  const ref4 = useRef(null);
+
+  const isInView1 = useInView(ref1, { once: true });
+  const isInView2 = useInView(ref2, { once: true });
+  const isInView3 = useInView(ref3, { once: true });
+  const isInView4 = useInView(ref4, { once: true });
+
+  const popInVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } },
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#6A7573]">
-      <header className="sticky top-0 z-10 flex flex-col items-center justify-between bg-white p-4 shadow-sm sm:flex-row md:p-6">
+      <motion.header
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ type: "spring", stiffness: 100 }}
+        className="sticky top-0 z-10 flex flex-col items-center justify-between bg-white p-4 shadow-sm sm:flex-row md:p-6"
+      >
         <div className="mb-4 text-2xl font-bold text-[#6A7573] sm:mb-0">
           FareShare
         </div>
@@ -34,13 +55,18 @@ export default function LandingPage() {
             </li>
           </ul>
         </nav>
-      </header>
+      </motion.header>
 
       <main>
         <section className="px-4 py-16 md:px-6 md:py-24">
           <div className="mx-auto max-w-6xl">
             <div className="flex flex-col items-center justify-between lg:flex-row">
-              <div className="mb-10 lg:mb-0 lg:w-1/2">
+              <motion.div
+                className="mb-10 lg:mb-0 lg:w-1/2"
+                initial="hidden"
+                animate="visible"
+                variants={popInVariants}
+              >
                 <h1 className="mb-6 text-4xl font-bold leading-tight text-[#6A7573] sm:text-5xl md:text-6xl lg:text-7xl">
                   Split Bills,
                   <br />
@@ -69,8 +95,13 @@ export default function LandingPage() {
                     Learn More
                   </Button>
                 </div>
-              </div>
-              <div className="mt-10 lg:mt-0 lg:w-1/2">
+              </motion.div>
+              <motion.div 
+                className="mt-10 lg:mt-0 lg:w-1/2"
+                initial="hidden"
+                animate="visible"
+                variants={popInVariants}
+              >
                 <div className="relative h-[550px] w-full overflow-hidden rounded-2xl bg-[#F0F9E8] shadow-lg">
                   <div className="absolute left-1/2 top-1/2 h-[92%] w-[90%] -translate-x-1/2 -translate-y-1/2 transform rounded-xl bg-white p-6 shadow-md sm:w-[85%] sm:p-8">
                     <div className="mb-6 flex items-center justify-between">
@@ -151,12 +182,16 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        <section
+        <motion.section
+          ref={ref1}
+          initial="hidden"
+          animate={isInView1 ? "visible" : "hidden"}
+          variants={popInVariants}
           id="features"
           className="bg-[#F0F9E8] px-4 py-16 md:px-6 md:py-24"
         >
@@ -165,92 +200,66 @@ export default function LandingPage() {
               Why Choose FareShare?
             </h2>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
-              <Card className="border-[#C5E4B4] bg-white transition-shadow duration-200 hover:shadow-lg">
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <DollarSign className="mb-6 h-16 w-16 text-[#4A5554]" />
-                  <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                    Fair Splitting
-                  </h3>
-                  <p className="text-lg text-[#6A7573]">
-                    Automatically divide bills based on what each person
-                    ordered, ensuring everyone pays their fair share.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-[#C5E4B4] bg-white transition-shadow duration-200 hover:shadow-lg">
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <Users className="mb-6 h-16 w-16 text-[#4A5554]" />
-                  <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                    Group Friendly
-                  </h3>
-                  <p className="text-lg text-[#6A7573]">
-                    Easily manage bills for groups of any size, from intimate
-                    dinners to large gatherings.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="border-[#C5E4B4] bg-white transition-shadow duration-200 hover:shadow-lg">
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <Zap className="mb-6 h-16 w-16 text-[#4A5554]" />
-                  <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                    Instant Calculations
-                  </h3>
-                  <p className="text-lg text-[#6A7573]">
-                    Get real-time updates as items are added or removed, with
-                    tax and tip automatically factored in.
-                  </p>
-                </CardContent>
-              </Card>
+              {[
+                { icon: DollarSign, title: "Fair Splitting", description: "Automatically divide bills based on what each person ordered, ensuring everyone pays their fair share." },
+                { icon: Users, title: "Group Friendly", description: "Easily manage bills for groups of any size, from intimate dinners to large gatherings." },
+                { icon: Zap, title: "Instant Calculations", description: "Get real-time updates as items are added or removed, with tax and tip automatically factored in." }
+              ].map((feature, index) => (
+                <Card key={index} className="border-[#C5E4B4] bg-white transition-shadow duration-200 hover:shadow-lg">
+                  <CardContent className="flex flex-col items-center p-8 text-center">
+                    <feature.icon className="mb-6 h-16 w-16 text-[#4A5554]" />
+                    <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
+                      {feature.title}
+                    </h3>
+                    <p className="text-lg text-[#6A7573]">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section id="how-it-works" className="px-4 py-16 md:px-6 md:py-24">
+        <motion.section 
+          ref={ref2}
+          initial="hidden"
+          animate={isInView2 ? "visible" : "hidden"}
+          variants={popInVariants}
+          id="how-it-works" 
+          className="px-4 py-16 md:px-6 md:py-24"
+        >
           <div className="mx-auto max-w-6xl">
             <h2 className="mb-12 text-center text-3xl font-bold text-[#6A7573] sm:text-4xl md:mb-16 md:text-5xl">
               How It Works
             </h2>
             <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-3">
-              <div className="text-center">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#DBFBC9] text-3xl font-bold text-[#6A7573]">
-                  <ScanLine className="h-10 w-10" />
+              {[
+                { icon: ScanLine, title: "Scan a Bill", description: "Quickly create a session by scanning your restaurant bill." },
+                { icon: UserPlus, title: "Invite Friends", description: "Easily add your dining companions to the bill-splitting session." },
+                { icon: Wallet, title: "Split and Pay", description: "Divide the bill fairly and settle up with your preferred payment method." }
+              ].map((step, index) => (
+                <div key={index} className="text-center">
+                  <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#DBFBC9] text-3xl font-bold text-[#6A7573]">
+                    <step.icon className="h-10 w-10" />
+                  </div>
+                  <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
+                    {step.title}
+                  </h3>
+                  <p className="text-lg text-[#6A7573]">
+                    {step.description}
+                  </p>
                 </div>
-                <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                  Scan a Bill
-                </h3>
-                <p className="text-lg text-[#6A7573]">
-                  Quickly create a session by scanning your restaurant bill.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#DBFBC9] text-3xl font-bold text-[#6A7573]">
-                  <UserPlus className="h-10 w-10" />
-                </div>
-                <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                  Invite Friends
-                </h3>
-                <p className="text-lg text-[#6A7573]">
-                  Easily add your dining companions to the bill-splitting
-                  session.
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#DBFBC9] text-3xl font-bold text-[#6A7573]">
-                  <Wallet className="h-10 w-10" />
-                </div>
-                <h3 className="mb-4 text-2xl font-semibold text-[#6A7573]">
-                  Split and Pay
-                </h3>
-                <p className="text-lg text-[#6A7573]">
-                  Divide the bill fairly and settle up with your preferred
-                  payment method.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
-        <section
+        <motion.section
+          ref={ref3}
+          initial="hidden"
+          animate={isInView3 ? "visible" : "hidden"}
+          variants={popInVariants}
           id="signup"
           className="bg-[#F0F9E8] px-4 py-16 md:px-6 md:py-24"
         >
@@ -273,10 +282,16 @@ export default function LandingPage() {
               </Button>
             </div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
-      <footer className="bg-white px-4 py-12 md:px-6">
+      <motion.footer 
+        ref={ref4}
+        initial="hidden"
+        animate={isInView4 ? "visible" : "hidden"}
+        variants={popInVariants}
+        className="bg-white px-4 py-12 md:px-6"
+      >
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between md:flex-row">
           <div className="mb-6 text-2xl font-bold text-[#6A7573] md:mb-0">
             FareShare
@@ -310,7 +325,7 @@ export default function LandingPage() {
             </ul>
           </nav>
         </div>
-      </footer>
+      </motion.footer>
     </div>
   );
 }
