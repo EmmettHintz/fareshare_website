@@ -229,7 +229,7 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
         >
           <Card className="w-full max-w-md bg-white shadow-lg border-[#DBFACB]">
             <CardHeader className="text-center bg-[#DBFACB] rounded-t-lg">
-              <CardTitle className="text-3xl font-bold text-[#6A7573]">Welcome to TabShare</CardTitle>
+              <CardTitle className="text-3xl font-bold text-[#6A7573]">Welcome to FareShare</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 p-6">
               <Input
@@ -262,7 +262,7 @@ export default function SessionPage({ params }: { params: { sessionId: string } 
       >
         <Card className="mx-auto max-w-md md:max-w-2xl lg:max-w-4xl bg-white shadow-lg border-[#DBFACB]">
           <CardHeader className="text-center bg-[#DBFACB] rounded-t-lg flex flex-col items-center">
-            <CardTitle className="text-4xl md:text-5xl font-bold text-[#6A7573] mb-2">TabShare</CardTitle>
+            <CardTitle className="text-4xl md:text-5xl font-bold text-[#6A7573] mb-2">FareShare</CardTitle>
             <p className="text-[#6A7573] text-lg">Session: {sessionId}</p>
             <p className="text-[#6A7573] text-xl font-semibold mt-2">Welcome, {userName}!</p>
             <Button 
