@@ -41,7 +41,7 @@ export default function LandingPage() {
         className="sticky top-0 z-10 flex flex-col items-center justify-between bg-white p-4 shadow-sm sm:flex-row md:p-6"
       >
         <div className="mb-4 text-2xl font-bold text-[#6A7573] sm:mb-0">
-          FareShare
+          ShareFare
         </div>
         <nav>
           <ul className="flex space-x-4">
@@ -73,7 +73,7 @@ export default function LandingPage() {
                   <span className="text-[#4A5554]">Not Friendships</span>
                 </h1>
                 <p className="mb-8 text-xl leading-relaxed text-[#6A7573] sm:text-2xl">
-                  FareShare makes dividing restaurant bills a breeze. Say goodbye
+                  ShareFare makes dividing restaurant bills a breeze. Say goodbye
                   to awkward calculations and hello to hassle-free dining
                   experiences.
                 </p>
@@ -197,7 +197,7 @@ export default function LandingPage() {
         >
           <div className="mx-auto max-w-6xl">
             <h2 className="mb-12 text-center text-3xl font-bold text-[#6A7573] sm:text-4xl md:mb-16 md:text-5xl">
-              Why Choose FareShare?
+              Why Choose ShareFare?
             </h2>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
               {[
@@ -294,7 +294,7 @@ export default function LandingPage() {
       >
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between md:flex-row">
           <div className="mb-6 text-2xl font-bold text-[#6A7573] md:mb-0">
-            FareShare
+            ShareFare
           </div>
           <nav>
             <ul className="flex flex-wrap justify-center space-x-8">
